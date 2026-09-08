@@ -182,16 +182,27 @@ app.get('/api/progress/:jobId', (req, res) => {
  * Process / Sanitize endpoint
  * Routes dual-mode processing: sanitizeImage for images, sanitizeVideo for videos.
  */
-app.post('/api/process', async (req, res) => {
-  const { filename, options = {}, jobId } = req.body;
+app.post('/api/process', upload.single('media'), async (req, res) => {
+  let filename = req.body.filename;
+  let options = req.body.options || {};
+  if (typeof options === 'string') {
+    try { options = JSON.parse(options); } catch (e) { options = {}; }
+  }
+  const jobId = req.body.jobId;
 
-  if (!filename) {
-    return res.status(400).json({ error: 'Filename is required.' });
+  let inputPath = null;
+  if (req.file) {
+    inputPath = req.file.path;
+    filename = req.file.filename;
+  } else if (filename) {
+    const candidate = path.join(UPLOAD_DIR, filename);
+    if (fs.existsSync(candidate)) {
+      inputPath = candidate;
+    }
   }
 
-  const inputPath = path.join(UPLOAD_DIR, filename);
-  if (!fs.existsSync(inputPath)) {
-    return res.status(404).json({ error: 'Original file not found.' });
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return res.status(404).json({ error: 'Original file not found. Please re-upload your media.' });
   }
 
   const outBaseName = `clean_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -265,6 +276,19 @@ app.post('/api/process', async (req, res) => {
     // Compute deterministic forensic audit score
     const audit = computeAuditScore(origProbe, cleanProbe, options);
 
+    let dataUrl = null;
+    if (fs.existsSync(outputPath)) {
+      try {
+        const fileBuffer = fs.readFileSync(outputPath);
+        if (fileBuffer.length <= 10 * 1024 * 1024) {
+          const mimeType = isImage
+            ? (outputFilename.endsWith('.png') ? 'image/png' : (outputFilename.endsWith('.webp') ? 'image/webp' : 'image/jpeg'))
+            : 'video/mp4';
+          dataUrl = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+        }
+      } catch (e) {}
+    }
+
     const resultPayload = {
       success: true,
       mediaType: isImage ? 'image' : 'video',
@@ -274,6 +298,7 @@ app.post('/api/process', async (req, res) => {
       sanitizedFilename: outputFilename,
       downloadUrl: `/api/download/${outputFilename}`,
       mediaUrl: `/media/processed/${outputFilename}`,
+      dataUrl,
       cleanSpectrogramUrl: cleanSpectroName ? `/media/processed/${cleanSpectroName}` : null,
       cleanProbe,
       origProbe,

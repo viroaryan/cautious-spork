@@ -253,7 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sourceVideo.removeAttribute('src');
       sourceVideo.load();
 
-      sourceImage.src = data.mediaUrl;
+      const mediaObjectUrl = state.currentFile ? URL.createObjectURL(state.currentFile) : null;
+      sourceImage.src = mediaObjectUrl || data.mediaUrl;
       mediaTypeBadge.innerText = 'Static Image';
       mediaTypeBadge.className = 'media-type-badge neu-pill';
       resetImagePanZoom();
@@ -281,7 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
       imagePreviewContainer.classList.add('hidden');
       videoPreviewContainer.classList.remove('hidden');
 
-      sourceVideo.src = data.mediaUrl;
+      const mediaObjectUrl = state.currentFile ? URL.createObjectURL(state.currentFile) : null;
+      sourceVideo.src = mediaObjectUrl || data.mediaUrl;
       sourceVideo.load();
       mediaTypeBadge.innerText = 'Video Stream';
       mediaTypeBadge.className = 'media-type-badge neu-pill';
@@ -657,14 +659,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      const res = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: state.uploadResult.filename,
+      let body;
+      let headers = {};
+
+      if (state.currentFile) {
+        const formData = new FormData();
+        formData.append('media', state.currentFile);
+        formData.append('filename', state.uploadResult ? state.uploadResult.filename : state.currentFile.name);
+        formData.append('options', JSON.stringify(options));
+        formData.append('jobId', jobId);
+        body = formData;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({
+          filename: state.uploadResult ? state.uploadResult.filename : '',
           options,
           jobId
-        })
+        });
+      }
+
+      const res = await fetch('/api/process', {
+        method: 'POST',
+        headers,
+        body
       });
 
       if (!res.ok) {
@@ -711,7 +728,9 @@ document.addEventListener('DOMContentLoaded', () => {
     auditVerdict.innerText = result.audit?.verdict || 'SAFE FOR SOCIAL MEDIA';
 
     // Download Button
-    downloadCleanBtn.href = result.downloadUrl || result.mediaUrl;
+    const cleanDownload = result.dataUrl || result.downloadUrl || result.mediaUrl;
+    downloadCleanBtn.href = cleanDownload;
+    downloadCleanBtn.download = result.cleanFilename || 'Instagram_Sanitized';
 
     const isResultImage = (result.mediaType === 'image') || (state.mediaType === 'image');
 
@@ -727,15 +746,15 @@ document.addEventListener('DOMContentLoaded', () => {
       auditCleanVideo.pause();
 
       // Populate Images
-      const origUrl = state.uploadResult.mediaUrl;
-      const cleanUrl = result.mediaUrl;
+      const origUrl = (state.currentFile ? URL.createObjectURL(state.currentFile) : null) || state.uploadResult?.mediaUrl;
+      const cleanUrl = result.dataUrl || result.mediaUrl;
 
       splitCleanImg.src = cleanUrl;
       splitOrigImg.src = origUrl;
       auditOrigImg.src = origUrl;
       auditCleanImg.src = cleanUrl;
 
-      origImgSizeLabel.innerText = formatBytes(state.uploadResult.sizeBytes || state.uploadResult.size || 0);
+      origImgSizeLabel.innerText = formatBytes(state.uploadResult?.sizeBytes || state.uploadResult?.size || state.currentFile?.size || 0);
       cleanImgSizeLabel.innerText = formatBytes(result.cleanProbe?.sizeBytes || result.cleanProbe?.size || 0);
 
       initSplitSlider();
@@ -747,8 +766,11 @@ document.addEventListener('DOMContentLoaded', () => {
       imageAuditStudio.classList.add('hidden');
       videoAuditStudio.classList.remove('hidden');
 
-      auditOrigVideo.src = state.uploadResult.mediaUrl;
-      auditCleanVideo.src = result.mediaUrl;
+      const origVideoUrl = (state.currentFile ? URL.createObjectURL(state.currentFile) : null) || state.uploadResult?.mediaUrl;
+      const cleanVideoUrl = result.dataUrl || result.mediaUrl;
+
+      auditOrigVideo.src = origVideoUrl;
+      auditCleanVideo.src = cleanVideoUrl;
       auditOrigVideo.load();
       auditCleanVideo.load();
 
