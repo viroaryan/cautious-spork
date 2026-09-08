@@ -1,4 +1,4 @@
-﻿# Contributing to ReelShield AI
+# Contributing to ReelShield AI
 
 Thank you for your interest in contributing to **ReelShield AI**! We welcome contributions from developers, designers, video engineers, and algorithmic researchers worldwide.
 

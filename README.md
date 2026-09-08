@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # 🛡️ ReelShield AI
 ### *Autonomous Media Anti-Fingerprinting Suite & Forensic Audit Studio*

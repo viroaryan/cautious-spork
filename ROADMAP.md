@@ -1,4 +1,4 @@
-﻿# ReelShield AI — Engineering Roadmap
+# ReelShield AI — Engineering Roadmap
 
 ## 🚀 Version 1.0 (Current Release)
 - [x] Dual Image/Video processing pipeline with independent branches.
