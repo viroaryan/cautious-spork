@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReelShield AI - Anti-Fingerprint Media Sanitizer & Forensic Audit Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Main App Container -->
+  <div class="app-container">
+    
+    <!-- Top Bar / Header -->
+    <header class="header neu-flat">
+      <div class="brand">
+        <svg class="brand-shield" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="brand-text">
+          <h1>ReelShield <span>AI</span></h1>
+          <span class="brand-sub">Forensic Media Sanitizer</span>
+        </div>
+      </div>
+      <div class="status-box neu-inset">
+        <span class="live-dot"></span>
+        <span class="status-text">Anti-Fingerprint Shield Active</span>
+      </div>
+    </header>
+
+    <!-- Upload Stage -->
+    <section class="upload-card neu-flat" id="uploadCard">
+      <div class="dropzone neu-inset" id="dropZone">
+        <input type="file" id="fileInput" accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp" hidden>
+        <div class="upload-icon neu-flat">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="upload-text-wrap">
+          <h3>Drag &amp; Drop Reel or Image Here</h3>
+          <p class="upload-hint">Supports MP4, MOV, WebM videos and PNG, JPG, WebP photos up to 100MB</p>
+        </div>
+        <button type="button" class="neu-btn uiverse-btn" id="browseBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Browse Media</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Workspace Grid (2 Columns) -->
+    <section class="workspace-grid hidden" id="workspace">
+      
+      <!-- Left Column: Media Preview, Pan/Zoom & Delogo -->
+      <div class="preview-container neu-flat">
+        <div class="preview-header">
+          <div class="preview-title-group">
+            <span class="preview-title">Original Media Preview</span>
+            <span class="media-type-badge neu-pill" id="mediaTypeBadge">Auto-Detecting</span>
+          </div>
+          <span class="badge" id="mediaBadge">Analysis Ready</span>
+        </div>
+
+        <!-- Preview Viewport Wrapper -->
+        <div class="preview-wrapper neu-inset">
+          <div class="preview-media-box" id="previewViewport">
+            <!-- Video Player Container (Active for videos) -->
+            <div id="videoPreviewContainer" class="media-layer hidden">
+              <video id="sourceVideo" controls playsinline muted loop></video>
+            </div>
+
+            <!-- Image Pan/Zoom Container (Active for images) -->
+            <div id="imagePreviewContainer" class="media-layer hidden">
+              <div class="image-viewport" id="imageViewport">
+                <img id="sourceImage" alt="Source Image" draggable="false">
+              </div>
+              <!-- Floating Pan/Zoom Controls Bar -->
+              <div class="pan-zoom-bar neu-flat">
+                <button type="button" class="neu-btn-mini" id="zoomOutBtn" title="Zoom Out">−</button>
+                <span class="zoom-pill" id="zoomLevel">100%</span>
+                <button type="button" class="neu-btn-mini" id="zoomInBtn" title="Zoom In">+</button>
+                <button type="button" class="neu-btn-mini" id="zoomResetBtn" title="Reset Zoom">Reset</button>
+              </div>
+            </div>
+
+            <!-- Canvas for Delogo / Watermark Eraser -->
+            <canvas id="delogoCanvas" class="delogo-canvas hidden"></canvas>
+
+            <!-- Instagram Safe Zone Overlay -->
+            <div id="instaSafeZone" class="insta-safe-zone hidden">
+              <div class="safe-zone-guide top-guide">Story / Reel Header Safe Limit</div>
+              <div class="safe-zone-guide bottom-guide">Caption & Audio Controls Safe Limit</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Row: Delogo & Safe Zone -->
+        <div class="controls-action-row">
+          <div class="action-buttons-group">
+            <button type="button" class="neu-btn neu-btn-sm" id="toggleDelogoBtn">Draw Watermark Eraser</button>
+            <button type="button" class="neu-btn neu-btn-sm" id="toggleSafeZoneBtn">9:16 Safe Zone</button>
+          </div>
+          <div id="delogoInfo" class="delogo-info-bar hidden">
+            <span class="info-text">Draw box on watermark</span>
+            <span id="delogoCoords" class="coords-badge">x:0 y:0 w:0 h:0</span>
+            <button type="button" class="neu-btn neu-btn-mini" id="clearDelogoBtn">Clear</button>
+          </div>
+        </div>
+
+        <!-- Probed Media Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-item neu-inset">
+            <span class="stat-lbl">Resolution</span>
+            <span class="stat-val" id="statRes">--</span>
+          </div>
+          <div class="stat-item neu-inset">
+            <span class="stat-lbl">Framerate</span>
+            <span class="stat-val" id="statFps">--</span>
+          </div>
+          <div class="stat-item neu-inset">
+            <span class="stat-lbl">Duration</span>
+            <span class="stat-val" id="statDur">--</span>
+          </div>
+          <div class="stat-item neu-inset">
+            <span class="stat-lbl">Audio Stream</span>
+            <span class="stat-val" id="statAudio">--</span>
+          </div>
+          <div class="stat-item neu-inset">
+            <span class="stat-lbl">Metadata Tags</span>
+            <span class="stat-val" id="statTags">--</span>
+          </div>
+          <div class="stat-item neu-inset">
+            <span class="stat-lbl">File Size</span>
+            <span class="stat-val" id="statFileSize">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Settings, Presets & Process Button -->
+      <div class="controls-container neu-flat">
+        <h3 class="panel-heading">Sanitization Parameters</h3>
+        
+        <!-- Presets Selection Cards -->
+        <div class="preset-section">
+          <label class="control-label">Anti-Fingerprint Preset</label>
+          <div class="presets-grid">
+            <div class="preset-card neu-flat active" data-preset="instant-stealth">
+              <div class="preset-icon">⚡</div>
+              <div class="preset-name">Instant Stealth</div>
+              <div class="preset-desc">1.8% Zoom, 1.008x Speed, +20¢ Pitch</div>
+            </div>
+            <div class="preset-card neu-flat" data-preset="deep-remaster">
+              <div class="preset-icon">🛡️</div>
+              <div class="preset-name">Deep Remaster</div>
+              <div class="preset-desc">2.2% Zoom, 1.012x Speed, 9:16 Scale</div>
+            </div>
+            <div class="preset-card neu-flat" data-preset="audio-only">
+              <div class="preset-icon">🎵</div>
+              <div class="preset-name">Audio Only</div>
+              <div class="preset-desc">Pitch + EQ Shift, 0% Video Shift</div>
+            </div>
+            <div class="preset-card neu-flat" data-preset="custom">
+              <div class="preset-icon">⚙️</div>
+              <div class="preset-name">Custom</div>
+              <div class="preset-desc">Manual parameter tuning</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sliders -->
+        <div class="control-group">
+          <label>Micro-Zoom Crop <span class="val-badge" id="valZoom">1.8%</span></label>
+          <input type="range" id="sliderZoom" min="0" max="5" step="0.1" value="1.8" class="neu-inset">
+        </div>
+
+        <div class="control-group" id="groupSpeed">
+          <label>Temporal Speed Shift <span class="val-badge" id="valSpeed">1.008x</span></label>
+          <input type="range" id="sliderSpeed" min="0.95" max="1.05" step="0.001" value="1.008" class="neu-inset">
+        </div>
+
+        <div class="control-group" id="groupPitch">
+          <label>Audio Pitch Shift <span class="val-badge" id="valPitch">+20 cents</span></label>
+          <input type="range" id="sliderPitch" min="-100" max="100" step="5" value="20" class="neu-inset">
+        </div>
+
+        <div class="control-group" id="groupOutro">
+          <label>CapCut Outro Trim <span class="val-badge" id="valOutro">2.5 sec</span></label>
+          <input type="range" id="sliderOutro" min="0" max="5" step="0.5" value="2.5" class="neu-inset">
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="checkbox-grid">
+          <label class="neu-checkbox neu-inset">
+            <input type="checkbox" id="chkNoise" checked>
+            <div class="check-box neu-flat"></div>
+            <span>Film Grain Noise</span>
+          </label>
+          <label class="neu-checkbox neu-inset">
+            <input type="checkbox" id="chkColor" checked>
+            <div class="check-box neu-flat"></div>
+            <span>Color / Gamma Jitter</span>
+          </label>
+          <label class="neu-checkbox neu-inset">
+            <input type="checkbox" id="chkUnsharp" checked>
+            <div class="check-box neu-flat"></div>
+            <span>Edge Unsharp Mask</span>
+          </label>
+          <label class="neu-checkbox neu-inset">
+            <input type="checkbox" id="chkInstaFormat">
+            <div class="check-box neu-flat"></div>
+            <span>Force 9:16 Vertical</span>
+          </label>
+        </div>
+
+        <!-- Device Spoofing -->
+        <div class="control-group">
+          <label>Device Profile Spoofing</label>
+          <select id="selDevice" class="neu-inset">
+            <option value="iphone15pro">Apple iPhone 15 Pro Max (iOS 17.5.1)</option>
+            <option value="s24ultra">Samsung Galaxy S24 Ultra (Android 14)</option>
+            <option value="none">Zero Metadata (Strict Container Purge)</option>
+          </select>
+        </div>
+
+        <!-- Primary CTA Button -->
+        <button class="neu-btn neu-btn-primary uiverse-btn" id="processBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>Execute Anti-Fingerprint Process</span>
+        </button>
+
+        <!-- Real SSE Progress Track -->
+        <div class="progress-wrap neu-inset hidden" id="progressContainer">
+          <div class="progress-track neu-inset">
+            <div class="progress-fill" id="progressBar"></div>
+          </div>
+          <div class="progress-labels">
+            <span id="progressText">Processing Media Pipeline...</span>
+            <span id="progressPercent">0%</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Audit Comparison Studio & Proof Verification Section -->
+    <section class="audit-container neu-flat hidden" id="auditSection">
+      
+      <!-- Audit Header & Score Circle -->
+      <div class="audit-header">
+        <div class="score-circle neu-inset" id="auditScoreVal">98%</div>
+        <div class="verdict-wrap">
+          <h2 id="auditVerdict">SAFE FOR INSTAGRAM REELS</h2>
+          <p class="audit-subtitle">Algorithmic Cold Feed Verification &amp; Hash Perturbation Complete</p>
+        </div>
+        <a id="downloadCleanBtn" href="#" download class="neu-btn neu-btn-primary download-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Download Sanitized Media</span>
+        </a>
+      </div>
+
+      <!-- Comparison Studio Wrapper -->
+      <div class="comparison-studio neu-flat" id="comparisonStudio">
+        
+        <!-- MODE 1: Video Audit Studio (Visible for videos) -->
+        <div id="videoAuditStudio" class="audit-mode-wrapper hidden">
+          <div class="audit-grid">
+            <div class="audit-box neu-inset">
+              <div class="box-header">
+                <h3>Original (Flagged)</h3>
+                <span class="file-size-badge" id="origSizeLabel">--</span>
+              </div>
+              <div class="audit-media-holder">
+                <video id="auditOrigVideo" playsinline></video>
+              </div>
+              <div class="spectro-card" id="origSpectroWrap">
+                <span class="spectro-label">Acoustic Spectrogram (Original)</span>
+                <img id="origSpectroImg" alt="Original Spectrogram">
+              </div>
+            </div>
+            <div class="audit-box neu-inset">
+              <div class="box-header">
+                <h3 class="text-success">Sanitized (Clean)</h3>
+                <span class="file-size-badge" id="cleanSizeLabel">--</span>
+              </div>
+              <div class="audit-media-holder">
+                <video id="auditCleanVideo" playsinline></video>
+              </div>
+              <div class="spectro-card" id="cleanSpectroWrap">
+                <span class="spectro-label">Acoustic Spectrogram (Frequency Shifted)</span>
+                <img id="cleanSpectroImg" alt="Sanitized Spectrogram">
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Sync Control Bar -->
+          <div class="video-sync-bar neu-inset">
+            <div class="sync-buttons">
+              <button type="button" class="neu-btn neu-btn-sm" id="syncPlayBtn">Sync Play</button>
+              <button type="button" class="neu-btn neu-btn-sm" id="syncPauseBtn">Sync Pause</button>
+              <button type="button" class="neu-btn neu-btn-sm" id="syncRestartBtn">↺ Restart</button>
+            </div>
+            <div class="sync-timeline-wrap">
+              <input type="range" id="syncSeeker" min="0" max="100" value="0" step="0.1" class="sync-seeker">
+              <span id="syncTimeDisplay" class="sync-time-pill">00:00 / 00:00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODE 2: Image Audit Studio (Visible for images) -->
+        <div id="imageAuditStudio" class="audit-mode-wrapper hidden">
+          <div class="image-comp-toolbar">
+            <span class="view-label">Comparison Mode:</span>
+            <div class="neu-tab-group">
+              <button type="button" class="neu-tab-btn active" id="btnSplitView">Interactive Split Curtain</button>
+              <button type="button" class="neu-tab-btn" id="btnSideView">Side-by-Side View</button>
+            </div>
+          </div>
+
+          <!-- View A: Interactive Split Curtain Slider -->
+          <div id="imageSplitViewer" class="split-viewer-container neu-inset">
+            <div class="split-layer clean-layer">
+              <img id="splitCleanImg" alt="Sanitized Clean Image" draggable="false">
+              <span class="split-label label-clean">Sanitized (Clean)</span>
+            </div>
+            <div class="split-layer orig-layer" id="splitOrigLayer">
+              <img id="splitOrigImg" alt="Original Flagged Image" draggable="false">
+              <span class="split-label label-orig">Original (Flagged)</span>
+            </div>
+            <div class="split-divider" id="splitDivider">
+              <div class="split-handle neu-flat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="m9 18-6-6 6-6"/>
+                  <path d="m15 6 6 6-6 6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- View B: Side-by-Side Image View -->
+          <div id="imageSideBySideViewer" class="audit-grid hidden">
+            <div class="audit-box neu-inset">
+              <div class="box-header">
+                <h3>Original (Flagged)</h3>
+                <span class="file-size-badge" id="origImgSizeLabel">--</span>
+              </div>
+              <div class="audit-img-wrap">
+                <img id="auditOrigImg" alt="Original Image">
+              </div>
+            </div>
+            <div class="audit-box neu-inset">
+              <div class="box-header">
+                <h3 class="text-success">Sanitized (Clean)</h3>
+                <span class="file-size-badge" id="cleanImgSizeLabel">--</span>
+              </div>
+              <div class="audit-img-wrap">
+                <img id="auditCleanImg" alt="Sanitized Image">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Anti-Fingerprint Forensic Audit Points Grid -->
+      <div class="audit-section-block">
+        <h3 class="section-title">Forensic Audit Points &amp; Proof-of-Work</h3>
+        <div id="auditPointsGrid" class="audit-points-grid"></div>
+      </div>
+
+      <!-- Genuine Before-and-After Metadata Diff Table -->
+      <div class="audit-section-block">
+        <div class="diff-header-row">
+          <h3 class="section-title">Container Metadata &amp; Tracking Diff</h3>
+          <div class="diff-stats-pills" id="diffStatsPills">
+            <span class="pill pill-danger" id="pillWipedCount">0 Wiped</span>
+            <span class="pill pill-success" id="pillCleanCount">0 Clean</span>
+            <span class="pill pill-info" id="pillSpoofedCount">0 Spoofed</span>
+          </div>
+        </div>
+
+        <div class="meta-table-wrapper neu-inset">
+          <table class="meta-table" id="metaDiffTable">
+            <thead>
+              <tr>
+                <th>Tag / Property</th>
+                <th>Original File</th>
+                <th>Sanitized File</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="metaTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </div> <!-- End App Container -->
+
+  <!-- R3: Scenic Illustrated Multi-Column Landscape Footer -->
+  <footer class="scenic-footer">
+    <!-- Layered High-Fidelity Landscape Vector SVG Banner -->
+    <div class="landscape-vector-wrapper">
+      <svg class="landscape-svg" viewBox="0 0 1440 340" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Atmospheric Sky Gradient -->
+          <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#e0e5ec"/>
+            <stop offset="35%" stop-color="#cad7e6"/>
+            <stop offset="70%" stop-color="#8ba1bb"/>
+            <stop offset="100%" stop-color="#3b4d66"/>
+          </linearGradient>
+
+          <!-- Glowing Sun Radial Gradient -->
+          <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+            <stop offset="25%" stop-color="#fef08a" stop-opacity="0.95"/>
+            <stop offset="60%" stop-color="#f59e0b" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </radialGradient>
+
+          <!-- Atmospheric Blur for Sun Glow -->
+          <filter id="glowBlur" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="16"/>
+          </filter>
+
+          <!-- Mountain 1 (Distant Misty Ridge) Gradient -->
+          <linearGradient id="mountainFarGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#7c92ac" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#4a5f78"/>
+          </linearGradient>
+
+          <!-- Mountain 2 (Mid-Range Jagged Ridge) Gradient -->
+          <linearGradient id="mountainMidGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#475569"/>
+            <stop offset="100%" stop-color="#2c3748"/>
+          </linearGradient>
+
+          <!-- Mountain 3 (Foreground Foothills) Gradient into #1e293b -->
+          <linearGradient id="mountainNearGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#334155"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+          </linearGradient>
+        </defs>
+
+        <!-- 1. Sky Canvas -->
+        <rect width="1440" height="340" fill="url(#skyGrad)"/>
+
+        <!-- 2. Sun Glow & Core Orb -->
+        <circle cx="260" cy="100" r="75" fill="url(#sunGlow)" filter="url(#glowBlur)"/>
+        <circle cx="260" cy="100" r="32" fill="#fffbe8" opacity="0.95"/>
+
+        <!-- 3. Layer 1: Distant Mountain Ridge -->
+        <path fill="url(#mountainFarGrad)" d="M0,195 C90,180 180,150 290,165 C400,180 490,210 610,190 C730,170 820,135 940,155 C1060,175 1170,205 1280,185 C1350,170 1410,160 1440,165 L1440,340 L0,340 Z"/>
+
+        <!-- 4. Layer 2: Mid-Range Mountain Ridge -->
+        <path fill="url(#mountainMidGrad)" d="M0,235 C120,215 220,190 350,210 C480,230 580,255 720,230 C860,205 970,225 1100,215 C1220,205 1340,220 1440,210 L1440,340 L0,340 Z"/>
+
+        <!-- 5. Layer 3: Foreground Foothills transitioning to Footer Base #1e293b -->
+        <path fill="url(#mountainNearGrad)" d="M0,270 C140,250 260,240 400,265 C540,290 680,275 820,255 C960,235 1120,260 1260,270 C1360,278 1410,268 1440,270 L1440,340 L0,340 Z"/>
+
+        <!-- 6. Geometric Pine Tree Silhouette Groves -->
+        <!-- Left Flank Groves (Framing the sun) -->
+        <g fill="#0f172a">
+          <polygon points="170,180 155,215 185,215"/>
+          <polygon points="170,200 150,245 190,245"/>
+          <polygon points="170,230 145,280 195,280"/>
+          <rect x="167" y="280" width="6" height="60"/>
+
+          <polygon points="210,160 192,200 228,200"/>
+          <polygon points="210,185 186,235 234,235"/>
+          <polygon points="210,220 180,275 240,275"/>
+          <rect x="207" y="275" width="6" height="65"/>
+
+          <polygon points="255,190 240,225 270,225"/>
+          <polygon points="255,210 234,255 276,255"/>
+          <polygon points="255,240 228,290 282,290"/>
+          <rect x="252" y="290" width="6" height="50"/>
+        </g>
+
+        <!-- Center-Mid Groves -->
+        <g fill="#162032">
+          <polygon points="680,210 668,240 692,240"/>
+          <polygon points="680,230 662,265 698,265"/>
+          <polygon points="680,255 655,295 705,295"/>
+          <rect x="677" y="295" width="6" height="45"/>
+
+          <polygon points="720,225 710,250 730,250"/>
+          <polygon points="720,242 705,272 735,272"/>
+          <polygon points="720,265 700,300 740,300"/>
+          <rect x="717" y="300" width="5" height="40"/>
+        </g>
+
+        <!-- Right Flank Groves -->
+        <g fill="#0f172a">
+          <polygon points="1200,195 1184,230 1216,230"/>
+          <polygon points="1200,218 1178,260 1222,260"/>
+          <polygon points="1200,248 1170,295 1230,295"/>
+          <rect x="1197" y="295" width="6" height="45"/>
+
+          <polygon points="1245,175 1227,215 1263,215"/>
+          <polygon points="1245,202 1220,250 1270,250"/>
+          <polygon points="1245,235 1212,288 1278,288"/>
+          <rect x="1242" y="288" width="6" height="52"/>
+
+          <polygon points="1290,205 1275,238 1305,238"/>
+          <polygon points="1290,228 1269,270 1311,270"/>
+          <polygon points="1290,258 1262,305 1318,305"/>
+          <rect x="1287" y="305" width="6" height="35"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Structured Multi-Column Navigation & Brand Base (Seamless #1e293b) -->
+    <div class="footer-base">
+      <div class="footer-container">
+        
+        <!-- Brand & Action Strip Header -->
+        <div class="footer-brand-action">
+          <div class="footer-brand">
+            <div class="footer-logo">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h2>ReelShield <span>AI</span></h2>
+            </div>
+            <p class="footer-tagline">Autonomous Anti-Fingerprinting Media Sanitizer &amp; Forensic Audit Studio.</p>
+          </div>
+          <div class="footer-action">
+            <a href="mailto:contact@reelshield.ai" class="neu-pill-btn footer-contact-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <span>Contact Us</span>
+            </a>
+          </div>
+        </div>
+
+        <hr class="footer-divider">
+
+        <!-- 3 Clean Semantic Navigation Columns -->
+        <div class="footer-nav-grid">
+          <!-- Column 1: Product -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Product</h4>
+            <ul class="footer-col-links">
+              <li><a href="#uploadCard">Reel &amp; Image Sanitizer</a></li>
+              <li><a href="#workspace">Parameters Studio</a></li>
+              <li><a href="#auditSection">Forensic Security Audit</a></li>
+              <li><a href="#workspace">Watermark Eraser</a></li>
+              <li><a href="#workspace">Device Profile Spoofing</a></li>
+            </ul>
+          </div>
+
+          <!-- Column 2: Company -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Company</h4>
+            <ul class="footer-col-links">
+              <li><a href="#">Our Security Mission</a></li>
+              <li><a href="#">Zero-Retention Policy</a></li>
+              <li><a href="#">Terms of Service</a></li>
+              <li><a href="#">Privacy Framework</a></li>
+              <li><a href="#">Security Research Kit</a></li>
+            </ul>
+          </div>
+
+          <!-- Column 3: Resources -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Resources</h4>
+            <ul class="footer-col-links">
+              <li><a href="#">Instagram Safe-Zones 2026</a></li>
+              <li><a href="#">Reels Algorithm Guidelines</a></li>
+              <li><a href="#">TMK Desync Whitepaper</a></li>
+              <li><a href="#">EXIF &amp; PDQ Documentation</a></li>
+              <li><a href="#">Engine API Status</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <hr class="footer-divider">
+
+        <!-- Bottom Action & Social Strip -->
+        <div class="footer-bottom">
+          <p class="footer-copy">&copy; 2026 ReelShield AI. All rights reserved. Neumorphism Edition. Authentic Proof-of-Work Verification.</p>
+          <div class="footer-socials">
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Twitter / X">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Instagram">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+              </svg>
+            </a>
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Facebook">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="LinkedIn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45c-.93 0-1.68.75-1.68 1.68 0 .93.75 1.68 1.68 1.68.93 0 1.68-.75 1.68-1.68 0-.93-.75-1.68-1.68-1.68z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

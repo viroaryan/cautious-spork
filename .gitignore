@@ -1,0 +1,24 @@
+﻿# Dependencies
+node_modules/
+
+# Uploads and temporary media (keep directories with .gitkeep)
+uploads/*
+!uploads/.gitkeep
+processed/*
+!processed/.gitkeep
+
+# Temporary test outputs
+test_out_4x4.jpg
+test_media/temp_*
+
+# Subagent workspaces
+.agents/
+
+# Logs & OS artifacts
+*.log
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
